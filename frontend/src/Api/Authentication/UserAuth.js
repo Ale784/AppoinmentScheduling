@@ -5,18 +5,23 @@ import { API_ROUTES } from "../../Utils/Constans";
 
 export async function AuthUser(values) {
 
-  try {
+  try {    
 
-    
-    const response = await axios.post(API_ROUTES.SIGN_IN, values);
-    
-    const { data } =  response;
+    const response = axios({ 
+      method: "post",
+      url: API_ROUTES.SIGN_IN,
+      data: values
+    })
+
+    const {data} = await response
+
 
     return data;
-
-  } catch (error) {
-
-    throw error;
+    
+  
+} catch (error) {
+  
+    return error
 
   }
 

@@ -11,12 +11,15 @@ export function GetTokenFromLocalStorage()
     return window.localStorage.getItem('Authorization')
 }
 
+
 export async function GetInfoIfUserIsAuthenticated()
 {
     const defaultObject = { user: null }
 
     try{
         const token = GetTokenFromLocalStorage()
+
+
         
         if(!token)
         {
@@ -40,7 +43,7 @@ export async function GetInfoIfUserIsAuthenticated()
     }
     catch(err)
     {
-        throw err
+        return err.response.status
     }
 
 

@@ -2,16 +2,17 @@ import { useState } from "react";
 import { useFormik } from "formik";
 import { AuthUser } from "../Api/Authentication/UserAuth";
 import axios from "axios";
-import { GoogleIcon } from "../assets/icons/icons";
 import { SaveTokenInLocalStorage } from "../Utils/Common";
-import { APP_ROUTES } from "../Utils/Constans";
 import { useNavigate } from "react-router-dom";
+import { GoogleIcon } from "../assets/icons/icons";
+import { useAuth } from "../Provider/AuthProvider";
 
 
 export function Login() {
   const [error, setError] = useState()
-  const [isLoading, setIsLoading] = useState();
+  const [isLoading, setIsLoading] = useState(false);
   const navigateTo = useNavigate();
+  const { storeToken } = useAuth();
 
   const formik = useFormik({
     initialValues: {
@@ -20,23 +21,19 @@ export function Login() {
     },
     onSubmit: async (values) => {
       try {
+
         setIsLoading(true)
+
         const response = await AuthUser(values)
-        
-        if(!response.token)
-        {
-          console.log("try again")
-        }
-
-        console.log("About to store the token...")
-
-        SaveTokenInLocalStorage(response.token)
-        navigateTo(APP_ROUTES.HOME)
+      
+        storeToken(response.token);
+        navigateTo("/home", { replace: true })
 
 
       } catch (error) {
         if (axios.isAxiosError(error)) {
           console.log(error.response.data.message)
+          setError(error.response.data.message)
         } else {
           setError("OPPS! an error has occurred, please try again, or come back later")
           throw new Error("different error than axios", error);
@@ -49,6 +46,7 @@ export function Login() {
 
 
   return (
+
     <section className="flex flex-col lg:flex-row bg-slate-100 dark:bg-slate-800 min-h-screen">
       
     <div
@@ -70,11 +68,22 @@ export function Login() {
 
         <div className="flex flex-col md:w-80 gap-3 w-full">
 
-  
-            <button className="flex items-center bg-white border border-gray-300 rounded-lg shadow-md px-6 py-2 text-sm font-medium text-gray-800 hover:bg-gray-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500">
-              <GoogleIcon />
-              <span>Continue with Google</span>
-            </button>
+            <form method="post" action={`https://api.domain.com/identity/v1/account/login-google?provider=Google&returnUrl=/home`}>
+
+              <button 
+              className="flex items-center bg-white border border-gray-300 rounded-lg shadow-md px-6 py-2 text-sm
+              font-medium text-gray-800 hover:bg-gray-200 focus:outline-none focus:ring-2 focus:ring-offset-2
+                focus:ring-gray-500"
+              name="provider"
+              value="google"
+
+                >
+                
+                <GoogleIcon />
+                <span>Continue with Google</span>
+              </button>
+
+            </form>
 
 
           <h2 className="text-gray-50 w-full  text-center border-b-2 border-solid border-gray-400  leading-[0.1rem] mt-6 mb-3">
@@ -192,5 +201,6 @@ export function Login() {
     </div>
 
     </section>
-  );
+  
+    );
 }
