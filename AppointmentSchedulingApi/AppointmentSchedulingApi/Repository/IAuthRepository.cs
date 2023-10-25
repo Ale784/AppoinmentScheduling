@@ -7,9 +7,9 @@ namespace AppointmentSchedulingApi.Repository
     public interface IAuthRepository
     {
 
-        Task<IdentityUser> Login(LoginCredentials credentials);
-        Task<IdentityResult> Register(RegisterCredentials registerCredentials);
-        Task<IActionResult> Test(string name,  string email, string password);
+        Task<UserReplyDTO> Login(LoginCredentials credentials);
+        Task<UserReplyDTO> Register(RegisterCredentials registerCredentials);
+       
 
     }
 }

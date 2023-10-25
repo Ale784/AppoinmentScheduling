@@ -21,6 +21,7 @@ using System.Collections.Generic;
 using AppointmentSchedulingApi.Repository;
 using AppointmentSchedulingApi.DTO;
 using Microsoft.AspNetCore.Http.HttpResults;
+using Microsoft.Identity.Client.Platforms.Features.DesktopOs.Kerberos;
 
 namespace AppointmentSchedulingApi.Controllers
 {
@@ -61,18 +62,16 @@ namespace AppointmentSchedulingApi.Controllers
 
             }
 
-            var identityResult = await _repository.Register(registerCredentials);
+            var result = await _repository.Register(registerCredentials);
 
-            if (!identityResult.Succeeded)
+            if(result.Errors != null)
             {
-                List<IdentityError> errorList = identityResult.Errors.ToList();
-                var errors = string.Join(", ", errorList.Select(e => e.Description));
-
-                return new BadRequestObjectResult(new { message = "OOPS!", errors });
+                return BadRequest( new { message = $"OPPS! {result.Errors}" } );
             }
-
-            return Ok(new { message = "User Registration Successful" });
-
+          
+            return Ok(new { message = $"User Registration Successful {result.UserName}" });
+            
+            
         }
 
         [HttpPost]
@@ -91,59 +90,32 @@ namespace AppointmentSchedulingApi.Controllers
                 return new BadRequestObjectResult(new { message = "User Login Failed", error });
 
             }
-
+            
             var user = await _repository.Login(credentials);
 
-            if (user is null)
+            if(user is null)
             {
-                return Unauthorized(new { message = "Incorrect credentials, please try again" });
+                return Unauthorized(new { message = "wrong credentials" } );
             }
 
-            var token = GenerateToken(user);
-                
+            var token = user.Token;
 
-            return Ok(new { Token = token, message = "You're in" });
+
+            return Ok(new { Token = token, message = $"Welcome {user.UserName}" });
         }
 
 
 
 
-        private object GenerateToken(IdentityUser identityUser)
+        [HttpPost]
+        [Route("account/login-google")]
+        public IActionResult ExternalLogin(string provider, string returnUrl)
         {
-            var tokenHandler = new JwtSecurityTokenHandler();
-            var key = Encoding.UTF8.GetBytes(_jwtBearerTokenSettings.SecretKey);
-
-            var tokenDescriptor = new SecurityTokenDescriptor
-            {
-                Subject = new ClaimsIdentity(new Claim[]
-                {
-                    new Claim(ClaimTypes.Name, identityUser.UserName.ToString()),
-                    new Claim(ClaimTypes.Email, identityUser.Email)
-                }),
-
-                Expires = DateTime.UtcNow.AddMonths(1),
-                SigningCredentials = new SigningCredentials(new SymmetricSecurityKey(key), SecurityAlgorithms.HmacSha256Signature),
-                Audience = _jwtBearerTokenSettings.Audience,
-                Issuer = _jwtBearerTokenSettings.Issuer
-            };
-
-            var token = tokenHandler.CreateToken(tokenDescriptor);
-            return tokenHandler.WriteToken(token);
+            var redirectUrl = $"https://api.domain.com/identity/v1/account/external-auth-callback?returnUrl={returnUrl}";
+            var properties = _signInManager.ConfigureExternalAuthenticationProperties(provider, redirectUrl);
+            properties.AllowRefresh = true;
+            return Challenge(properties, provider);
         }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 
 
@@ -161,7 +133,6 @@ namespace AppointmentSchedulingApi.Controllers
 
             var data = await _userManager.FindByNameAsync(email);
 
-            Console.WriteLine(data);
 
             if (data is null)
             {
